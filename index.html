@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المساعدات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            direction: rtl;
+            text-align: right;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .input-group label, .input-group input, .input-group select {
+            width: 100%;
+        }
+        #app-content {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #app-content.active {
+            opacity: 1;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto p-4 md:p-8">
+        <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">نظام إدارة المساعدات</h1>
+        
+        <!-- Login Section -->
+        <div id="login-section" class="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-sm mx-auto">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700 text-center">تسجيل الدخول</h2>
+            <div class="space-y-4">
+                <div class="input-group">
+                    <label for="username-input" class="block text-gray-700 font-medium mb-1">اسم المستخدم</label>
+                    <input type="text" id="username-input" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="أدخل اسم المستخدم">
+                </div>
+                <div class="input-group">
+                    <label for="password-input" class="block text-gray-700 font-medium mb-1">كلمة المرور</label>
+                    <input type="password" id="password-input" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="أدخل كلمة المرور">
+                </div>
+                <button id="login-btn" class="w-full py-3 px-4 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 transition-colors duration-200 shadow-md">تسجيل الدخول</button>
+            </div>
+            <div id="login-error" class="text-red-500 text-sm mt-4 hidden text-center">اسم المستخدم أو كلمة المرور غير صحيحة.</div>
+        </div>
+
+        <!-- Main App Content (hidden initially) -->
+        <div id="app-content" class="hidden">
+            <!-- Tabs for different sections -->
+            <div class="flex mb-8 border-b-2 border-gray-300 overflow-x-auto">
+                <button id="add-tab" class="py-3 px-6 text-gray-600 font-semibold border-b-4 border-transparent hover:border-blue-500 hover:text-blue-500 transition-colors duration-200 whitespace-nowrap">إضافة مستفيد جديد</button>
+                <button id="search-tab" class="py-3 px-6 text-gray-600 font-semibold border-b-4 border-transparent hover:border-blue-500 hover:text-blue-500 transition-colors duration-200 whitespace-nowrap">البحث و التقارير</button>
+                <button id="bulk-add-tab" class="py-3 px-6 text-gray-600 font-semibold border-b-4 border-transparent hover:border-blue-500 hover:text-blue-500 transition-colors duration-200 whitespace-nowrap">إضافة من ملف</button>
+                <button id="user-management-tab" class="py-3 px-6 text-gray-600 font-semibold border-b-4 border-transparent hover:border-blue-500 hover:text-blue-500 transition-colors duration-200 whitespace-nowrap">إدارة المستخدمين</button>
+                <button id="user-info-tab" class="py-3 px-6 text-gray-600 font-semibold border-b-4 border-transparent hover:border-blue-500 hover:text-blue-500 transition-colors duration-200 whitespace-nowrap">معلومات الحساب</button>
+                <button id="logout-tab" class="py-3 px-6 text-red-600 font-semibold border-b-4 border-transparent hover:border-red-500 hover:text-red-500 transition-colors duration-200 whitespace-nowrap mr-auto">تسجيل الخروج</button>
+            </div>
+
+            <!-- Add Beneficiary Section -->
+            <div id="add-section" class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">إضافة مساعدة جديدة</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="input-group">
+                        <label for="full-name" class="block text-gray-700 font-medium mb-1">الاسم الرباعي <span class="text-red-500">*</span></label>
+                        <input type="text" id="full-name" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل الاسم الرباعي">
+                    </div>
+                    <div class="input-group">
+                        <label for="id-number" class="block text-gray-700 font-medium mb-1">رقم الهوية <span class="text-red-500">*</span></label>
+                        <input type="tel" id="id-number" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل رقم الهوية (9 أرقام)" pattern="[0-9]{9}" data-valid="false">
+                    </div>
+                    <!-- New field: Beneficiary Category -->
+                    <div class="input-group">
+                        <label for="beneficiary-category" class="block text-gray-700 font-medium mb-1">فئة المستفيد <span class="text-red-500">*</span></label>
+                        <select id="beneficiary-category" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                            <option value="">اختر الفئة</option>
+                            <option value="جريح">جريح</option>
+                            <option value="مريض">مريض</option>
+                            <option value="عالق">عالق</option>
+                        </select>
+                    </div>
+                    <!-- New fields for Gender and Marital Status -->
+                    <div class="input-group">
+                        <label for="gender-select" class="block text-gray-700 font-medium mb-1">الجنس <span class="text-red-500">*</span></label>
+                        <select id="gender-select" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                            <option value="">اختر الجنس</option>
+                            <option value="ذكر">ذكر</option>
+                            <option value="أنثى">أنثى</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="marital-status" class="block text-gray-700 font-medium mb-1">الحالة الاجتماعية <span class="text-red-500">*</span></label>
+                        <select id="marital-status" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                        <option value="">اختر الحالة</option>
+                            <option value="أعزب">أعزب</option>
+                            <option value="متزوج">متزوج</option>
+                            <option value="مطلق">مطلق</option>
+                            <option value="أرمل">أرمل</option>
+                        </select>
+                    </div>
+                    <!-- Dynamic field for Martyr's wife -->
+                    <div id="martyr-wife-group" class="input-group hidden md:col-span-2">
+                        <label for="is-martyr-wife" class="block text-gray-700 font-medium mb-1">هل هي زوجة شهيد؟</label>
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <input type="checkbox" id="is-martyr-wife" class="h-5 w-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                            <label for="is-martyr-wife" class="text-gray-700">نعم</label>
+                        </div>
+                    </div>
+                    <!-- Dynamic fields for orphans -->
+                    <div class="input-group md:col-span-2">
+                        <label for="has-orphans" class="block text-gray-700 font-medium mb-1">هل هناك أيتام في العائلة؟</label>
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <input type="checkbox" id="has-orphans" class="h-5 w-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                            <label for="has-orphans" class="text-gray-700">نعم</label>
+                        </div>
+                    </div>
+                    <div id="num-orphans-group" class="input-group hidden">
+                        <label for="num-orphans" class="block text-gray-700 font-medium mb-1">كم عدد الأيتام في العائلة؟</label>
+                        <input type="number" id="num-orphans" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل العدد">
+                    </div>
+                    <!-- Existing and new assistance fields -->
+                    <div class="input-group">
+                        <label for="assistance-type" class="block text-gray-700 font-medium mb-1">طبيعة المساعدة <span class="text-red-500">*</span></label>
+                        <input type="text" id="assistance-type" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل طبيعة المساعدة">
+                    </div>
+                    <div class="input-group">
+                        <label for="assistance-value" class="block text-gray-700 font-medium mb-1">قيمة المساعدة <span class="text-red-500">*</span></label>
+                        <input type="number" id="assistance-value" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل قيمة المساعدة">
+                    </div>
+                    <!-- New field: Assistance Provider -->
+                    <div class="input-group">
+                        <label for="assistance-provider" class="block text-gray-700 font-medium mb-1">جهة المساعدة <span class="text-red-500">*</span></label>
+                        <input type="text" id="assistance-provider" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل جهة المساعدة">
+                    </div>
+                    <!-- New field: Mobile Number -->
+                    <div class="input-group">
+                        <label for="mobile-number" class="block text-gray-700 font-medium mb-1">رقم موبايل المستفيد</label>
+                        <input type="tel" id="mobile-number" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل رقم الموبايل">
+                    </div>
+                    <div class="input-group md:col-span-2">
+                        <label for="assistance-date" class="block text-gray-700 font-medium mb-1">تاريخ الحصول على المساعدة</label>
+                        <input type="date" id="assistance-date" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                    </div>
+                </div>
+                <button id="add-record-btn" class="mt-6 w-full py-3 px-4 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors duration-200 shadow-md">إضافة مساعدة</button>
+            </div>
+
+            <!-- Bulk Add Section -->
+            <div id="bulk-add-section" class="hidden bg-white p-6 md:p-8 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">إضافة بيانات من ملف</h2>
+                <div class="mb-4 text-sm text-gray-600">
+                    <p>
+                    يرجى تحويل ملفك إلى صيغة CSV قبل الرفع. يمكنك القيام بذلك من خلال برنامج Excel (أو ما شابه) عبر:
+                    <span class="font-bold">ملف -> حفظ باسم -> اختيار نوع الملف "CSV (Comma delimited)"</span>
+                    </p>
+                    <p class="mt-2 font-semibold">
+                    يجب أن تكون رؤوس الأعمدة في ملفك كالتالي:
+                    الاسم الرباعي، رقم الهوية، فئة المستفيد، الجنس، الحالة الاجتماعية، زوجة شهيد، يوجد أيتام، عدد الأيتام، طبيعة المساعدة، قيمة المساعدة، جهة المساعدة، رقم الموبايل، تاريخ الحصول على المساعدة
+                    </p>
+                </div>
+                <div class="input-group">
+                    <label for="bulk-file" class="block text-gray-700 font-medium mb-2">اختر ملف CSV</label>
+                    <input type="file" id="bulk-file" accept=".csv" class="w-full text-gray-700">
+                </div>
+                <button id="upload-bulk-btn" class="mt-6 w-full py-3 px-4 bg-purple-600 text-white rounded-md font-semibold hover:bg-purple-700 transition-colors duration-200 shadow-md">رفع البيانات</button>
+                <div id="bulk-upload-status" class="mt-4 text-center text-sm font-semibold"></div>
+            </div>
+
+            <!-- Search & Reports Section -->
+            <div id="search-section" class="hidden">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg mb-6">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-700">البحث عن مستفيد</h2>
+                    <div class="input-group flex flex-col md:flex-row items-end gap-4">
+                        <div class="flex-grow w-full">
+                            <label for="search-query" class="block text-gray-700 font-medium mb-1">رقم الهوية أو جزء من الاسم</label>
+                            <input type="text" id="search-query" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل رقم الهوية أو الاسم">
+                        </div>
+                        <button id="search-btn" class="w-full md:w-auto py-2.5 px-6 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 transition-colors duration-200 shadow-md">بحث</button>
+                    </div>
+                </div>
+                
+                <!-- New search filters -->
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg mb-6">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-700">خيارات بحث متقدمة</h2>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <button id="search-martyr-wives-btn" class="py-2.5 px-6 bg-orange-500 text-white rounded-md font-semibold hover:bg-orange-600 transition-colors duration-200 shadow-md">بحث عن زوجات شهداء</button>
+                        <button id="search-orphans-btn" class="py-2.5 px-6 bg-cyan-500 text-white rounded-md font-semibold hover:bg-cyan-600 transition-colors duration-200 shadow-md">بحث عن عائلات فيها أيتام</button>
+                        <button id="search-both-btn" class="py-2.5 px-6 bg-yellow-500 text-white rounded-md font-semibold hover:bg-yellow-600 transition-colors duration-200 shadow-md">بحث عن كلاهما معاً</button>
+                    </div>
+                </div>
+
+                <div id="search-results-section" class="hidden bg-white p-6 md:p-8 rounded-lg shadow-lg mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold">نتائج البحث</h3>
+                        <button id="download-search-btn" class="py-2 px-4 bg-blue-500 text-white rounded-md font-semibold text-sm hover:bg-blue-600 transition-colors duration-200">تنزيل تقرير البحث</button>
+                    </div>
+                    <div id="person-report" class="space-y-4"></div>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg mb-6">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-700">التقارير المتقدمة</h2>
+                    <div class="grid md:grid-cols-2 gap-6 mb-4">
+                        <div class="input-group">
+                            <label for="start-date" class="block text-gray-700 font-medium mb-1">تاريخ البداية (تقرير زمني)</label>
+                            <input type="date" id="start-date" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                        </div>
+                        <div class="input-group">
+                            <label for="end-date" class="block text-gray-700 font-medium mb-1">تاريخ النهاية (تقرير زمني)</label>
+                            <input type="date" id="end-date" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                        </div>
+                        <div class="input-group md:col-span-2">
+                            <button id="temporal-report-btn" class="w-full py-2.5 px-6 bg-purple-600 text-white rounded-md font-semibold hover:bg-purple-700 transition-colors duration-200 shadow-md">عرض التقرير الزمني</button>
+                        </div>
+                    </div>
+                    <div class="input-group mb-4">
+                        <label for="assistance-type-report" class="block text-gray-700 font-medium mb-1">طبيعة المساعدة (تقرير بالمستفيدين)</label>
+                        <input type="text" id="assistance-type-report" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" placeholder="أدخل طبيعة المساعدة">
+                    </div>
+                    <button id="assistance-type-report-btn" class="w-full py-2.5 px-6 bg-orange-600 text-white rounded-md font-semibold hover:bg-orange-700 transition-colors duration-200 shadow-md">عرض المستفيدين من المساعدة</button>
+                </div>
+                <div id="advanced-report-results" class="hidden bg-white p-6 md:p-8 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold mb-4" id="advanced-report-title"></h3>
+                    <div id="advanced-report-content" class="space-y-4"></div>
+                </div>
+
+                <!-- Download All Data Button -->
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg mt-6 text-center">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-700">تنزيل جميع البيانات</h2>
+                    <button id="download-all-data-btn" class="py-3 px-6 bg-red-600 text-white rounded-md font-semibold hover:bg-red-700 transition-colors duration-200 shadow-md">تنزيل كل البيانات</button>
+                </div>
+            </div>
+
+            <!-- User Management Section -->
+            <div id="user-management-section" class="hidden bg-white p-6 md:p-8 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">إضافة مستخدم جديد</h2>
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <label for="new-user-username" class="block text-gray-700 font-medium mb-1">اسم المستخدم الجديد</label>
+                        <input type="text" id="new-user-username" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="أدخل اسم المستخدم">
+                    </div>
+                    <div class="input-group">
+                        <label for="new-user-password" class="block text-gray-700 font-medium mb-1">كلمة المرور</label>
+                        <input type="password" id="new-user-password" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="أدخل كلمة المرور">
+                    </div>
+                    <div class="input-group">
+                        <label for="new-user-full-name" class="block text-gray-700 font-medium mb-1">الاسم الكامل</label>
+                        <input type="text" id="new-user-full-name" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="أدخل الاسم الكامل لصاحب الحساب">
+                    </div>
+                    <div class="input-group">
+                        <label for="admin-password" class="block text-gray-700 font-medium mb-1">كلمة مرور المسؤول</label>
+                        <input type="password" id="admin-password" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="أدخل كلمة مرور المسؤول لتأكيد الإضافة">
+                    </div>
+                </div>
+                <button id="add-user-btn" class="mt-6 w-full py-3 px-4 bg-purple-600 text-white rounded-md font-semibold hover:bg-purple-700 transition-colors duration-200 shadow-md">إضافة مستخدم</button>
+            </div>
+
+            <!-- User Info Section -->
+            <div id="user-info-section" class="hidden bg-white p-6 md:p-8 rounded-lg shadow-lg text-center">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">معلومات الحساب</h2>
+                <p class="text-gray-600">أنت الآن تعمل باسم:</p>
+                <div class="mt-4 p-4 bg-gray-100 rounded-md break-words">
+                    <span id="current-user-name" class="font-mono text-gray-800 text-sm md:text-base">جارٍ التحميل...</span>
+                </div>
+                <button id="logout-button" class="mt-6 py-2.5 px-6 bg-red-600 text-white rounded-md font-semibold hover:bg-red-700 transition-colors duration-200 shadow-md">تسجيل الخروج</button>
+            </div>
+        </div>
+        
+        <!-- Toast Notification -->
+        <div id="toast-message" class="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transition-opacity duration-300"></div>
+
+        <!-- Loading Indicator -->
+        <div id="loading-indicator" class="hidden fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="delete-modal" class="fixed inset-0 hidden items-center justify-center z-50 modal-overlay">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-80 text-center">
+                <p class="mb-4 text-lg">هل أنت واثق يا حبيب أنك تريد أن تحذف بيانات هذا المستفيد؟</p>
+                <div class="flex justify-center space-x-4 space-x-reverse">
+                    <button id="confirm-delete-btn" class="py-2 px-4 bg-red-600 text-white rounded-md font-semibold hover:bg-red-700 transition-colors">نعم</button>
+                    <button id="cancel-delete-btn" class="py-2 px-4 bg-gray-300 text-gray-800 rounded-md font-semibold hover:bg-gray-400 transition-colors">لا</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div id="edit-modal" class="fixed inset-0 hidden items-center justify-center z-50 modal-overlay overflow-y-auto py-8">
+            <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-11/12 max-w-lg">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">تعديل مساعدة</h2>
+                <input type="hidden" id="edit-doc-id">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="input-group">
+                        <label for="edit-full-name" class="block text-gray-700 font-medium mb-1">الاسم الرباعي <span class="text-red-500">*</span></label>
+                        <input type="text" id="edit-full-name" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-id-number" class="block text-gray-700 font-medium mb-1">رقم الهوية <span class="text-red-500">*</span></label>
+                        <input type="tel" id="edit-id-number" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" pattern="[0-9]{9}" data-valid="false">
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-beneficiary-category" class="block text-gray-700 font-medium mb-1">فئة المستفيد <span class="text-red-500">*</span></label>
+                        <select id="edit-beneficiary-category" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">اختر الفئة</option>
+                            <option value="جريح">جريح</option>
+                            <option value="مريض">مريض</option>
+                            <option value="عالق">عالق</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-gender-select" class="block text-gray-700 font-medium mb-1">الجنس <span class="text-red-500">*</span></label>
+                        <select id="edit-gender-select" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">اختر الجنس</option>
+                            <option value="ذكر">ذكر</option>
+                            <option value="أنثى">أنثى</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-marital-status" class="block text-gray-700 font-medium mb-1">الحالة الاجتماعية <span class="text-red-500">*</span></label>
+                        <select id="edit-marital-status" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">اختر الحالة</option>
+                            <option value="أعزب">أعزب</option>
+                            <option value="متزوج">متزوج</option>
+                            <option value="مطلق">مطلق</option>
+                            <option value="أرمل">أرمل</option>
+                        </select>
+                    </div>
+                    <div id="edit-martyr-wife-group" class="input-group hidden md:col-span-2">
+                        <label for="edit-is-martyr-wife" class="block text-gray-700 font-medium mb-1">هل هي زوجة شهيد؟</label>
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <input type="checkbox" id="edit-is-martyr-wife" class="h-5 w-5 text-blue-600 rounded">
+                            <label for="edit-is-martyr-wife" class="text-gray-700">نعم</label>
+                        </div>
+                    </div>
+                    <div class="input-group md:col-span-2">
+                        <label for="edit-has-orphans" class="block text-gray-700 font-medium mb-1">هل هناك أيتام في العائلة؟</label>
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <input type="checkbox" id="edit-has-orphans" class="h-5 w-5 text-blue-600 rounded">
+                            <label for="edit-has-orphans" class="text-gray-700">نعم</label>
+                        </div>
+                    </div>
+                    <div id="edit-num-orphans-group" class="input-group hidden">
+                        <label for="edit-num-orphans" class="block text-gray-700 font-medium mb-1">كم عدد الأيتام في العائلة؟</label>
+                        <input type="number" id="edit-num-orphans" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-assistance-type" class="block text-gray-700 font-medium mb-1">طبيعة المساعدة <span class="text-red-500">*</span></label>
+                        <input type="text" id="edit-assistance-type" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-assistance-value" class="block text-gray-700 font-medium mb-1">قيمة المساعدة <span class="text-red-500">*</span></label>
+                        <input type="number" id="edit-assistance-value" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-assistance-provider" class="block text-gray-700 font-medium mb-1">جهة المساعدة <span class="text-red-500">*</span></label>
+                        <input type="text" id="edit-assistance-provider" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="edit-mobile-number" class="block text-gray-700 font-medium mb-1">رقم موبايل المستفيد</label>
+                        <input type="tel" id="edit-mobile-number" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="input-group md:col-span-2">
+                        <label for="edit-assistance-date" class="block text-gray-700 font-medium mb-1">تاريخ الحصول على المساعدة</label>
+                        <input type="date" id="edit-assistance-date" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-4 space-x-reverse mt-6">
+                    <button id="update-record-btn" class="py-3 px-6 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors shadow-md">حفظ التعديلات</button>
+                    <button id="cancel-edit-btn" class="py-3 px-6 bg-gray-300 text-gray-800 rounded-md font-semibold hover:bg-gray-400 transition-colors shadow-md">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, getDocs, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- Firebase Setup ---
+        setLogLevel('Debug');
+        const firebaseConfig = {
+  apiKey: "AIzaSyDCWN_B6qHo-QRWoQf8Wmi8oghw4VFEXFo",
+  authDomain: "aid2025.firebaseapp.com",
+  projectId: "aid2025",
+  storageBucket: "aid2025.firebasestorage.app",
+  messagingSenderId: "56517370731",
+  appId: "1:56517370731:web:a1e1441cbccf548909622e",
+  };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        const ADMIN_PASSWORD = 'm$159753';
+        const MASTER_USER = {
+            username: 'genge',
+            password: 'm$159753',
+            fullName: 'ابو عمر الحبيب'
+        };
+
+        let db, auth, userId, currentUserName;
+        let isAuthReady = false;
+        let searchResultsData = [];
+        let docIdToDelete = null;
+
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        
+        // --- Firestore References ---
+        function getUserCredentialsCollectionRef() {
+            return collection(db, 'artifacts', appId, 'public', 'data', 'user_credentials');
+        }
+
+        function getAssistanceRecordsCollectionRef() {
+            return collection(db, 'artifacts', appId, 'public', 'data', 'assistance_records');
+        }
+
+        // --- Authentication State Listener & Initial Setup ---
+        (async () => {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            userId = user.uid;
+                        } else {
+                            hideAppContent();
+                            isAuthReady = false;
+                        }
+                    });
+                } else {
+                    await signInAnonymously(auth);
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            userId = user.uid;
+                        } else {
+                            hideAppContent();
+                            isAuthReady = false;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Initial sign-in error:", error);
+                showToast("حدث خطأ في الاتصال الأولي. يرجى إعادة تحميل الصفحة.");
+            }
+        })();
+        
+        // --- UI State Management ---
+        function showAppContent() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+            document.getElementById('app-content').classList.add('active');
+            document.getElementById('add-tab').click();
+        }
+
+        function hideAppContent() {
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('app-content').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('app-content').classList.add('hidden');
+            }, 500);
+        }
+        
+        // --- Modal Control ---
+        function showDeleteModal(docId) {
+            docIdToDelete = docId;
+            document.getElementById('delete-modal').classList.remove('hidden');
+            document.getElementById('delete-modal').classList.add('flex');
+        }
+
+        function hideDeleteModal() {
+            docIdToDelete = null;
+            document.getElementById('delete-modal').classList.add('hidden');
+            document.getElementById('delete-modal').classList.remove('flex');
+        }
+        
+        function showEditModal() {
+            document.getElementById('edit-modal').classList.remove('hidden');
+            document.getElementById('edit-modal').classList.add('flex');
+        }
+        
+        function hideEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            document.getElementById('edit-modal').classList.remove('flex');
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('login-btn').addEventListener('click', handleLogin);
+        document.getElementById('password-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+        
+        document.getElementById('logout-tab').addEventListener('click', async () => {
+            await signOut(auth);
+            showToast("تم تسجيل الخروج بنجاح.");
+            hideAppContent();
+        });
+
+        document.getElementById('logout-button').addEventListener('click', async () => {
+            await signOut(auth);
+            showToast("تم تسجيل الخروج بنجاح.");
+            hideAppContent();
+        });
+        
+        // Delete Modal buttons
+        document.getElementById('confirm-delete-btn').addEventListener('click', handleDeleteConfirmation);
+        document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+        
+        // Edit Modal buttons
+        document.getElementById('update-record-btn').addEventListener('click', handleUpdate);
+        document.getElementById('cancel-edit-btn').addEventListener('click', hideEditModal);
+        document.getElementById('edit-gender-select').addEventListener('change', (e) => {
+            const isMartyrWifeGroup = document.getElementById('edit-martyr-wife-group');
+            if (e.target.value === 'أنثى') {
+                isMartyrWifeGroup.classList.remove('hidden');
+            } else {
+                isMartyrWifeGroup.classList.add('hidden');
+                document.getElementById('edit-is-martyr-wife').checked = false;
+            }
+        });
+        document.getElementById('edit-has-orphans').addEventListener('change', (e) => {
+            const numOrphansGroup = document.getElementById('edit-num-orphans-group');
+            if (e.target.checked) {
+                numOrphansGroup.classList.remove('hidden');
+            } else {
+                numOrphansGroup.classList.add('hidden');
+                document.getElementById('edit-num-orphans').value = '';
+            }
+        });
+
+        // Tab management
+        const tabs = {
+            'add-tab': 'add-section',
+            'bulk-add-tab': 'bulk-add-section',
+            'search-tab': 'search-section',
+            'user-management-tab': 'user-management-section',
+            'user-info-tab': 'user-info-section'
+        };
+        Object.keys(tabs).forEach(tabId => {
+            document.getElementById(tabId).addEventListener('click', () => {
+                const sectionId = tabs[tabId];
+                Object.values(tabs).forEach(secId => document.getElementById(secId).classList.add('hidden'));
+                Object.keys(tabs).forEach(id => {
+                    document.getElementById(id).classList.remove('border-blue-500', 'text-blue-500');
+                    document.getElementById(id).classList.add('border-transparent', 'text-gray-600');
+                });
+                document.getElementById(sectionId).classList.remove('hidden');
+                document.getElementById(tabId).classList.add('border-blue-500', 'text-blue-500');
+                document.getElementById(tabId).classList.remove('border-transparent', 'text-gray-600');
+            });
+        });
+        
+        // Dynamic field listeners
+        document.getElementById('gender-select').addEventListener('change', (e) => {
+            const isMartyrWifeGroup = document.getElementById('martyr-wife-group');
+            if (e.target.value === 'أنثى') {
+                isMartyrWifeGroup.classList.remove('hidden');
+            } else {
+                isMartyrWifeGroup.classList.add('hidden');
+                document.getElementById('is-martyr-wife').checked = false;
+            }
+        });
+
+        document.getElementById('has-orphans').addEventListener('change', (e) => {
+            const numOrphansGroup = document.getElementById('num-orphans-group');
+            if (e.target.checked) {
+                numOrphansGroup.classList.remove('hidden');
+            } else {
+                numOrphansGroup.classList.add('hidden');
+                document.getElementById('num-orphans').value = '';
+            }
+        });
+
+        // App function buttons
+        document.getElementById('add-record-btn').addEventListener('click', () => addRecordFromForm());
+        document.getElementById('search-btn').addEventListener('click', searchRecords);
+        document.getElementById('search-martyr-wives-btn').addEventListener('click', () => searchFilteredRecords({ isMartyrWife: true }));
+        document.getElementById('search-orphans-btn').addEventListener('click', () => searchFilteredRecords({ hasOrphans: true }));
+        document.getElementById('search-both-btn').addEventListener('click', () => searchFilteredRecords({ isMartyrWife: true, hasOrphans: true }));
+        document.getElementById('temporal-report-btn').addEventListener('click', getTemporalReport);
+        document.getElementById('assistance-type-report-btn').addEventListener('click', getAssistanceTypeReport);
+        document.getElementById('download-search-btn').addEventListener('click', downloadSearchReport);
+        document.getElementById('download-all-data-btn').addEventListener('click', downloadAllData);
+        document.getElementById('add-user-btn').addEventListener('click', addNewUser);
+        document.getElementById('upload-bulk-btn').addEventListener('click', handleBulkUpload);
+
+
+        // Event listener for edit and delete buttons
+        document.getElementById('person-report').addEventListener('click', (e) => {
+            const targetBtn = e.target.closest('button[data-action]');
+            if (!targetBtn) return;
+            const docId = targetBtn.dataset.docId;
+            const action = targetBtn.dataset.action;
+            if (action === 'edit') {
+                handleEdit(docId);
+            } else if (action === 'delete') {
+                showDeleteModal(docId);
+            }
+        });
+
+        // --- Authentication & User Management ---
+        async function handleLogin() {
+            const username = document.getElementById('username-input').value.trim();
+            const password = document.getElementById('password-input').value.trim();
+            const errorElement = document.getElementById('login-error');
+            errorElement.classList.add('hidden');
+            
+            if (!username || !password) {
+                errorElement.textContent = "يرجى إدخال اسم المستخدم وكلمة المرور.";
+                errorElement.classList.remove('hidden');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                await checkAndCreateMasterUser();
+
+                const usersRef = getUserCredentialsCollectionRef();
+                const q = query(usersRef, where('username', '==', username));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    errorElement.textContent = "اسم المستخدم غير موجود.";
+                    errorElement.classList.remove('hidden');
+                } else {
+                    const userDoc = querySnapshot.docs[0];
+                    const userData = userDoc.data();
+                    if (userData.password === password) {
+                         currentUserName = userData.fullName;
+                         document.getElementById('current-user-name').textContent = currentUserName;
+                         isAuthReady = true;
+                         showAppContent();
+                         showToast("تم تسجيل الدخول بنجاح.");
+                    } else {
+                        errorElement.textContent = "كلمة المرور غير صحيحة.";
+                        errorElement.classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error("Login error:", error);
+                errorElement.textContent = "حدث خطأ في تسجيل الدخول. يرجى المحاولة مرة أخرى.";
+                errorElement.classList.remove('hidden');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function checkAndCreateMasterUser() {
+            const usersRef = getUserCredentialsCollectionRef();
+            const q = query(usersRef, where('username', '==', MASTER_USER.username));
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+                await addDoc(usersRef, MASTER_USER);
+            }
+        }
+
+        async function addNewUser() {
+            const newUserUsername = document.getElementById('new-user-username').value.trim();
+            const newUserPassword = document.getElementById('new-user-password').value.trim();
+            const newUserFullName = document.getElementById('new-user-full-name').value.trim();
+            const adminPassword = document.getElementById('admin-password').value.trim();
+            
+            if (!newUserUsername || !newUserPassword || !newUserFullName || !adminPassword) {
+                showToast("يرجى ملء جميع الحقول.");
+                return;
+            }
+            
+            if (adminPassword !== ADMIN_PASSWORD) {
+                showToast("كلمة مرور المسؤول غير صحيحة.");
+                return;
+            }
+
+            showLoading();
+            try {
+                const usersRef = getUserCredentialsCollectionRef();
+                const q = query(usersRef, where('username', '==', newUserUsername));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    showToast("اسم المستخدم هذا موجود بالفعل.");
+                } else {
+                    await addDoc(usersRef, {
+                        username: newUserUsername,
+                        password: newUserPassword,
+                        fullName: newUserFullName,
+                        uid: ''
+                    });
+                    showToast("تمت إضافة المستخدم الجديد بنجاح!");
+                    document.getElementById('new-user-username').value = '';
+                    document.getElementById('new-user-password').value = '';
+                    document.getElementById('new-user-full-name').value = '';
+                    document.getElementById('admin-password').value = '';
+                }
+            } catch (error) {
+                console.error("Error adding new user:", error);
+                showToast("حدث خطأ في إضافة المستخدم.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // --- Helper Functions ---
+        function showToast(message) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = message;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 3000);
+        }
+
+        function showLoading() {
+            document.getElementById('loading-indicator').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-indicator').classList.add('hidden');
+        }
+
+        function clearForm() {
+            document.getElementById('full-name').value = '';
+            document.getElementById('id-number').value = '';
+            document.getElementById('beneficiary-category').value = '';
+            document.getElementById('gender-select').value = '';
+            document.getElementById('marital-status').value = '';
+            document.getElementById('is-martyr-wife').checked = false;
+            document.getElementById('martyr-wife-group').classList.add('hidden');
+            document.getElementById('has-orphans').checked = false;
+            document.getElementById('num-orphans').value = '';
+            document.getElementById('num-orphans-group').classList.add('hidden');
+            document.getElementById('assistance-type').value = '';
+            document.getElementById('assistance-value').value = '';
+            document.getElementById('assistance-provider').value = '';
+            document.getElementById('mobile-number').value = '';
+            document.getElementById('assistance-date').value = '';
+        }
+
+        function downloadCSV(data, filename) {
+            const csvRows = [];
+            const headers = ['الاسم الرباعي', 'رقم الهوية', 'فئة المستفيد', 'الجنس', 'الحالة الاجتماعية', 'زوجة شهيد', 'يوجد أيتام', 'عدد الأيتام', 'طبيعة المساعدة', 'قيمة المساعدة', 'جهة المساعدة', 'رقم الموبايل', 'تاريخ الحصول على المساعدة'];
+            csvRows.push(headers.join(','));
+
+            for (const record of data) {
+                const values = [
+                    record.fullName,
+                    record.idNumber,
+                    record.beneficiaryCategory,
+                    record.gender,
+                    record.maritalStatus,
+                    record.isMartyrWife ? 'نعم' : 'لا',
+                    record.hasOrphans ? 'نعم' : 'لا',
+                    record.numOrphans,
+                    record.assistanceType,
+                    record.assistanceValue,
+                    record.assistanceProvider,
+                    record.mobileNumber,
+                    record.assistanceDate.toDate().toLocaleDateString('en-CA')
+                ];
+                csvRows.push(values.map(val => `"${val}"`).join(','));
+            }
+
+            const csvString = csvRows.join('\n');
+            const bom = "\uFEFF";
+            const blob = new Blob([bom + csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // --- Firestore Operations ---
+        async function addRecordToDB(record) {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return false;
+            }
+            try {
+                // Validation logic
+                const requiredFields = ['fullName', 'idNumber', 'beneficiaryCategory', 'gender', 'maritalStatus', 'assistanceType', 'assistanceValue', 'assistanceProvider'];
+                for (const field of requiredFields) {
+                    if (!record[field] || (typeof record[field] === 'string' && record[field].trim() === '')) {
+                        console.error(`Missing required field: ${field}`);
+                        showToast(`خطأ: حقل ${field} مفقود في أحد السجلات.`);
+                        return false;
+                    }
+                }
+                
+                if (!/^\d{9}$/.test(record.idNumber)) {
+                    console.error(`Invalid ID number: ${record.idNumber}`);
+                    showToast(`خطأ: رقم الهوية ${record.idNumber} غير صالح.`);
+                    return false;
+                }
+                
+                if (record.hasOrphans && (isNaN(record.numOrphans) || record.numOrphans < 0)) {
+                    console.error(`Invalid number of orphans: ${record.numOrphans}`);
+                    showToast(`خطأ: عدد الأيتام غير صالح.`);
+                    return false;
+                }
+                
+                // Handle date conversion gracefully
+                let formattedAssistanceDate = null;
+                if (record.assistanceDate) {
+                    const dateObj = new Date(record.assistanceDate);
+                    if (!isNaN(dateObj.getTime())) {
+                        formattedAssistanceDate = Timestamp.fromDate(dateObj);
+                    } else {
+                        console.error("Invalid date format:", record.assistanceDate);
+                        showToast("خطأ: تنسيق التاريخ غير صالح.");
+                        return false;
+                    }
+                }
+                
+                // Add timestamp and fix types
+                const dbRecord = {
+                    ...record,
+                    assistanceDate: formattedAssistanceDate,
+                    assistanceValue: parseFloat(record.assistanceValue),
+                    numOrphans: record.numOrphans ? parseInt(record.numOrphans) : 0,
+                    createdAt: Timestamp.now()
+                };
+
+                await addDoc(getAssistanceRecordsCollectionRef(), dbRecord);
+                return true;
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showToast("حدث خطأ في إضافة البيانات.");
+                return false;
+            }
+        }
+
+        async function addRecordFromForm() {
+            const fullName = document.getElementById('full-name').value.trim();
+            const idNumberInput = document.getElementById('id-number');
+            const idNumber = idNumberInput.value.trim();
+            const beneficiaryCategory = document.getElementById('beneficiary-category').value;
+            const gender = document.getElementById('gender-select').value;
+            const maritalStatus = document.getElementById('marital-status').value;
+            const isMartyrWife = document.getElementById('is-martyr-wife').checked;
+            const hasOrphans = document.getElementById('has-orphans').checked;
+            const numOrphans = hasOrphans ? parseInt(document.getElementById('num-orphans').value) : 0;
+            const assistanceType = document.getElementById('assistance-type').value.trim();
+            const assistanceValue = parseFloat(document.getElementById('assistance-value').value);
+            const assistanceProvider = document.getElementById('assistance-provider').value.trim();
+            const mobileNumber = document.getElementById('mobile-number').value.trim();
+            const assistanceDate = document.getElementById('assistance-date').value;
+
+            // Check if required fields are filled
+            if (!fullName || !idNumber || !beneficiaryCategory || !gender || !maritalStatus || !assistanceType || isNaN(assistanceValue) || !assistanceProvider) {
+                showToast("يرجى ملء جميع الحقول المطلوبة (المشار إليها بـ *).");
+                return;
+            }
+
+            // Check for idNumber validity
+            if (!/^\d{9}$/.test(idNumber)) {
+                idNumberInput.classList.remove('border-gray-300', 'focus:ring-blue-500');
+                idNumberInput.classList.add('border-red-500');
+                showToast("رقم الهوية يجب أن يكون 9 أرقام فقط.");
+                return;
+            } else {
+                idNumberInput.classList.remove('border-red-500');
+                idNumberInput.classList.add('border-gray-300', 'focus:ring-blue-500');
+            }
+            
+            if (hasOrphans && isNaN(numOrphans)) {
+                showToast("يرجى إدخال عدد الأيتام.");
+                return;
+            }
+
+            const record = {
+                fullName,
+                idNumber,
+                beneficiaryCategory,
+                gender,
+                maritalStatus,
+                isMartyrWife: gender === 'أنثى' ? isMartyrWife : false,
+                hasOrphans,
+                numOrphans: hasOrphans ? numOrphans : 0,
+                assistanceType,
+                assistanceValue,
+                assistanceProvider,
+                mobileNumber,
+                assistanceDate: assistanceDate ? assistanceDate : '',
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+            
+            showLoading();
+            const success = await addRecordToDB(record);
+            if (success) {
+                clearForm();
+                showToast("تمت إضافة المساعدة بنجاح!");
+            }
+            hideLoading();
+        }
+
+        // --- Bulk Upload Logic ---
+        async function handleBulkUpload() {
+            const fileInput = document.getElementById('bulk-file');
+            const file = fileInput.files[0];
+            if (!file) {
+                showToast("يرجى اختيار ملف أولاً.");
+                return;
+            }
+
+            const statusElement = document.getElementById('bulk-upload-status');
+            statusElement.textContent = 'جاري معالجة الملف...';
+
+            showLoading();
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                const rows = text.split('\n').map(row => row.trim()).filter(row => row.length > 0);
+                const headers = rows[0].split(',').map(h => h.trim());
+                const dataRows = rows.slice(1);
+
+                const expectedHeaders = ['الاسم الرباعي', 'رقم الهوية', 'فئة المستفيد', 'الجنس', 'الحالة الاجتماعية', 'زوجة شهيد', 'يوجد أيتام', 'عدد الأيتام', 'طبيعة المساعدة', 'قيمة المساعدة', 'جهة المساعدة', 'رقم الموبايل', 'تاريخ الحصول على المساعدة'];
+
+                if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
+                    showToast("تنسيق رؤوس الأعمدة في ملفك غير صحيح. يرجى التأكد من الترتيب الصحيح.");
+                    hideLoading();
+                    return;
+                }
+
+                let successCount = 0;
+                let failCount = 0;
+
+                for (let i = 0; i < dataRows.length; i++) {
+                    const row = dataRows[i];
+                    const values = row.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                    if (values.length !== expectedHeaders.length) {
+                         console.error(`Skipping row ${i + 2}: incorrect number of columns.`);
+                         failCount++;
+                         continue;
+                    }
+
+                    const record = {
+                        fullName: values[0],
+                        idNumber: values[1],
+                        beneficiaryCategory: values[2],
+                        gender: values[3],
+                        maritalStatus: values[4],
+                        isMartyrWife: values[5] === 'نعم',
+                        hasOrphans: values[6] === 'نعم',
+                        numOrphans: values[7],
+                        assistanceType: values[8],
+                        assistanceValue: values[9],
+                        assistanceProvider: values[10],
+                        mobileNumber: values[11],
+                        assistanceDate: values[12]
+                    };
+
+                    statusElement.textContent = `جاري إضافة السجل ${i + 1} من ${dataRows.length}...`;
+                    const success = await addRecordToDB(record);
+                    if (success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                }
+
+                hideLoading();
+                statusElement.textContent = '';
+                showToast(`تم الانتهاء! ${successCount} سجل تم إضافته بنجاح، و ${failCount} فشل.`);
+            };
+            reader.onerror = () => {
+                hideLoading();
+                showToast("حدث خطأ في قراءة الملف.");
+            };
+            reader.readAsText(file);
+        }
+
+        async function searchRecords() {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+
+            const searchQuery = document.getElementById('search-query').value.trim();
+            if (!searchQuery) {
+                showToast("يرجى إدخال رقم الهوية أو الاسم للبحث.");
+                return;
+            }
+            
+            showLoading();
+            const reportDiv = document.getElementById('person-report');
+            reportDiv.innerHTML = '';
+            document.getElementById('search-results-section').classList.add('hidden');
+            document.getElementById('download-search-btn').classList.add('hidden');
+            
+            let q;
+            const recordsRef = getAssistanceRecordsCollectionRef();
+            
+            try {
+                q = query(recordsRef, where("idNumber", "==", searchQuery));
+                const idQuerySnapshot = await getDocs(q);
+
+                if (!idQuerySnapshot.empty) {
+                    displayPersonReport(idQuerySnapshot.docs);
+                } else {
+                    q = query(recordsRef);
+                    const nameQuerySnapshot = await getDocs(q);
+                    const filteredDocs = nameQuerySnapshot.docs.filter(doc => 
+                        doc.data().fullName.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                    
+                    if (filteredDocs.length > 0) {
+                        displayPersonReport(filteredDocs);
+                    } else {
+                        reportDiv.innerHTML = `<p class="text-center text-gray-500">لا يوجد مستفيدون مطابقون لنتيجة البحث.</p>`;
+                        document.getElementById('search-results-section').classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error("Error searching documents: ", error);
+                showToast("حدث خطأ في البحث عن البيانات.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function searchFilteredRecords(filters) {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            
+            showLoading();
+            const reportDiv = document.getElementById('person-report');
+            reportDiv.innerHTML = '';
+            document.getElementById('search-results-section').classList.add('hidden');
+            document.getElementById('download-search-btn').classList.add('hidden');
+
+            const recordsRef = getAssistanceRecordsCollectionRef();
+            let q;
+            
+            try {
+                if (filters.isMartyrWife && filters.hasOrphans) {
+                    q = query(recordsRef, where("isMartyrWife", "==", true), where("hasOrphans", "==", true));
+                } else if (filters.isMartyrWife) {
+                    q = query(recordsRef, where("isMartyrWife", "==", true));
+                } else if (filters.hasOrphans) {
+                    q = query(recordsRef, where("hasOrphans", "==", true));
+                }
+
+                if (q) {
+                    const querySnapshot = await getDocs(q);
+                    if (querySnapshot.empty) {
+                        reportDiv.innerHTML = `<p class="text-center text-gray-500">لا يوجد مستفيدون يطابقون خيارات البحث.</p>`;
+                        document.getElementById('search-results-section').classList.remove('hidden');
+                    } else {
+                        displayPersonReport(querySnapshot.docs);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching filtered records:", error);
+                showToast("حدث خطأ في البحث المتقدم.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayPersonReport(docs) {
+            const reportDiv = document.getElementById('person-report');
+            reportDiv.innerHTML = '';
+            searchResultsData = docs.map(doc => ({id: doc.id, ...doc.data()}));
+            
+            const groupedRecords = searchResultsData.reduce((acc, record) => {
+                acc[record.idNumber] = acc[record.idNumber] || [];
+                acc[record.idNumber].push(record);
+                return acc;
+            }, {});
+
+            for (const id in groupedRecords) {
+                const records = groupedRecords[id].sort((a, b) => b.assistanceDate.toDate() - a.assistanceDate.toDate());
+                const personName = records[0].fullName;
+                const totalValue = records.reduce((sum, rec) => sum + rec.assistanceValue, 0);
+                const mobileNumber = records[0].mobileNumber;
+                const formattedMobileNumber = mobileNumber ? mobileNumber.replace(/\s/g, '') : '';
+                const mobileLink = mobileNumber ? `<p class="text-sm text-gray-600">رقم الموبايل: <a href="https://wa.me/${formattedMobileNumber}" target="_blank" class="text-blue-500 hover:underline font-semibold">${mobileNumber}</a></p>` : '';
+
+                let personHtml = `<div class="bg-gray-100 p-4 rounded-md border-r-4 border-blue-500 shadow-sm">`;
+                personHtml += `<div class="flex items-center mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 ml-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                <h4 class="text-lg font-bold">${personName} - ${id}</h4>
+                                </div>`;
+                personHtml += `<p class="text-sm text-gray-600">فئة المستفيد: ${records[0].beneficiaryCategory}</p>`;
+                personHtml += `<p class="text-sm text-gray-600">الجنس: ${records[0].gender}</p>`;
+                personHtml += `<p class="text-sm text-gray-600">الحالة الاجتماعية: ${records[0].maritalStatus}</p>`;
+                if (records[0].gender === 'أنثى' && records[0].isMartyrWife) {
+                    personHtml += `<p class="text-sm text-red-600 font-semibold">زوجة شهيد</p>`;
+                }
+                if (records[0].hasOrphans) {
+                    personHtml += `<p class="text-sm text-green-600 font-semibold">يوجد أيتام: ${records[0].numOrphans}</p>`;
+                }
+                personHtml += `<p class="text-sm text-gray-600">إجمالي المساعدات: <span class="font-bold text-green-600">${totalValue.toLocaleString()}</span></p>`;
+                personHtml += mobileLink;
+                personHtml += `<div class="mt-4 border-t border-gray-300 pt-4 space-y-3">
+                                <h5 class="font-semibold text-gray-700">تفاصيل المساعدات:</h5>`;
+                
+                records.forEach(rec => {
+                    personHtml += `
+                        <div class="bg-gray-200 p-3 rounded-md flex justify-between items-center">
+                            <div>
+                                <p class="text-sm font-semibold">${rec.assistanceType}</p>
+                                <p class="text-xs text-gray-600">القيمة: ${rec.assistanceValue.toLocaleString()}</p>
+                                <p class="text-xs text-gray-600">جهة المساعدة: ${rec.assistanceProvider}</p>
+                                <p class="text-xs text-gray-600">التاريخ: ${rec.assistanceDate.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            </div>
+                            <div class="flex-shrink-0 space-x-2 space-x-reverse">
+                                <button data-doc-id="${rec.id}" data-action="edit" class="bg-yellow-500 text-white p-2 rounded-full hover:bg-yellow-600 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 21H5c-1.103 0-2-.897-2-2V5c0-1.103.897-2 2-2h14c1.103 0 2 .897 2 2v14c0 1.103-.897 2-2 2zm-7.619-1.996h-.001c-.417.001-.818.172-1.116.471l-2.736 2.736c-.309.309-.724.478-1.156.478-.89 0-1.61-.72-1.61-1.61 0-.432.169-.847.478-1.156l2.736-2.736c.299-.299.47-.699.471-1.116-.001-.89-.721-1.61-1.611-1.61h-2.128c-.89 0-1.61-.72-1.61-1.61s.72-1.61 1.61-1.61h2.128c.417.001.818.172 1.116.471l2.736 2.736c.309.309.478.724.478 1.156 0 .89-.72 1.61-1.61 1.61z"/></svg>
+                                </button>
+                                <button data-doc-id="${rec.id}" data-action="delete" class="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12h2v6H9zm4 0h2v6h-2zm-.2-10h4.4c.55 0 1 .45 1 1v2h-8V3c0-.55.45-1 1-1zm6.2 3H5v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V5z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                                
+                personHtml += `</div>`;
+                personHtml += `</div>`;
+                reportDiv.innerHTML += personHtml;
+            }
+            document.getElementById('search-results-section').classList.remove('hidden');
+            if (docs.length > 0) {
+                document.getElementById('download-search-btn').classList.remove('hidden');
+            }
+        }
+        
+        async function handleEdit(docId) {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            showLoading();
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'assistance_records', docId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('edit-doc-id').value = docId;
+                    document.getElementById('edit-full-name').value = data.fullName;
+                    document.getElementById('edit-id-number').value = data.idNumber;
+                    document.getElementById('edit-beneficiary-category').value = data.beneficiaryCategory;
+                    document.getElementById('edit-gender-select').value = data.gender;
+                    document.getElementById('edit-marital-status').value = data.maritalStatus;
+                    document.getElementById('edit-is-martyr-wife').checked = data.isMartyrWife || false;
+                    document.getElementById('edit-has-orphans').checked = data.hasOrphans || false;
+                    document.getElementById('edit-num-orphans').value = data.numOrphans || '';
+                    document.getElementById('edit-assistance-type').value = data.assistanceType;
+                    document.getElementById('edit-assistance-value').value = data.assistanceValue;
+                    document.getElementById('edit-assistance-provider').value = data.assistanceProvider;
+                    document.getElementById('edit-mobile-number').value = data.mobileNumber;
+                    document.getElementById('edit-assistance-date').value = data.assistanceDate.toDate().toISOString().split('T')[0];
+
+                    if (data.gender === 'أنثى') {
+                        document.getElementById('edit-martyr-wife-group').classList.remove('hidden');
+                    } else {
+                        document.getElementById('edit-martyr-wife-group').classList.add('hidden');
+                    }
+                    if (data.hasOrphans) {
+                        document.getElementById('edit-num-orphans-group').classList.remove('hidden');
+                    } else {
+                        document.getElementById('edit-num-orphans-group').classList.add('hidden');
+                    }
+
+                    showEditModal();
+                } else {
+                    showToast("لم يتم العثور على السجل.");
+                }
+            } catch (error) {
+                console.error("Error fetching document for edit:", error);
+                showToast("حدث خطأ في جلب بيانات السجل.");
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function handleUpdate() {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            const docId = document.getElementById('edit-doc-id').value;
+            const updatedData = {
+                fullName: document.getElementById('edit-full-name').value.trim(),
+                idNumber: document.getElementById('edit-id-number').value.trim(),
+                beneficiaryCategory: document.getElementById('edit-beneficiary-category').value,
+                gender: document.getElementById('edit-gender-select').value,
+                maritalStatus: document.getElementById('edit-marital-status').value,
+                isMartyrWife: document.getElementById('edit-is-martyr-wife').checked,
+                hasOrphans: document.getElementById('edit-has-orphans').checked,
+                numOrphans: document.getElementById('edit-has-orphans').checked ? parseInt(document.getElementById('edit-num-orphans').value) : 0,
+                assistanceType: document.getElementById('edit-assistance-type').value.trim(),
+                assistanceValue: parseFloat(document.getElementById('edit-assistance-value').value),
+                assistanceProvider: document.getElementById('edit-assistance-provider').value.trim(),
+                mobileNumber: document.getElementById('edit-mobile-number').value.trim(),
+                assistanceDate: Timestamp.fromDate(new Date(document.getElementById('edit-assistance-date').value)),
+            };
+
+            // Basic validation
+            if (!updatedData.fullName || !updatedData.idNumber || !updatedData.beneficiaryCategory || !updatedData.gender || !updatedData.maritalStatus || !updatedData.assistanceType || isNaN(updatedData.assistanceValue) || !updatedData.assistanceProvider) {
+                showToast("يرجى ملء جميع الحقول المطلوبة.");
+                return;
+            }
+            if (!/^\d{9}$/.test(updatedData.idNumber)) {
+                showToast("رقم الهوية يجب أن يكون 9 أرقام فقط.");
+                return;
+            }
+            if (updatedData.hasOrphans && isNaN(updatedData.numOrphans)) {
+                showToast("يرجى إدخال عدد الأيتام.");
+                return;
+            }
+
+            showLoading();
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'assistance_records', docId);
+                await updateDoc(docRef, updatedData);
+                hideEditModal();
+                showToast("تم تحديث السجل بنجاح!");
+                searchRecords(); // Refresh results
+            } catch (error) {
+                console.error("Error updating document:", error);
+                showToast("حدث خطأ في تحديث البيانات.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function handleDeleteConfirmation() {
+            hideDeleteModal();
+            if (!docIdToDelete) return;
+            
+            showLoading();
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'assistance_records', docIdToDelete);
+                await deleteDoc(docRef);
+                showToast("تم حذف السجل بنجاح!");
+                searchRecords(); // Refresh results
+            } catch (error) {
+                console.error("Error deleting document:", error);
+                showToast("حدث خطأ في حذف السجل.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function getTemporalReport() {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            if (!startDate || !endDate) {
+                showToast("يرجى تحديد تاريخي البداية والنهاية.");
+                return;
+            }
+
+            showLoading();
+            const reportTitle = document.getElementById('advanced-report-title');
+            const reportContent = document.getElementById('advanced-report-content');
+            document.getElementById('advanced-report-results').classList.add('hidden');
+
+            const recordsRef = getAssistanceRecordsCollectionRef();
+            const q = query(
+                recordsRef,
+                where("assistanceDate", ">=", Timestamp.fromDate(new Date(startDate))),
+                where("assistanceDate", "<=", Timestamp.fromDate(new Date(endDate)))
+            );
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                reportTitle.textContent = `تقرير المساعدات من ${new Date(startDate).toLocaleDateString()} إلى ${new Date(endDate).toLocaleDateString()}`;
+                
+                if (querySnapshot.empty) {
+                    reportContent.innerHTML = `<p class="text-center text-gray-500">لا توجد مساعدات في هذا الإطار الزمني.</p>`;
+                } else {
+                    let totalValue = 0;
+                    const htmlContent = querySnapshot.docs.map(doc => {
+                        const data = doc.data();
+                        totalValue += data.assistanceValue;
+                        return `
+                            <div class="bg-gray-100 p-3 rounded-md border-r-4 border-purple-500">
+                                <p class="font-semibold">${data.fullName} - ${data.assistanceType}</p>
+                                <p class="text-sm text-gray-600">القيمة: ${data.assistanceValue.toLocaleString()}</p>
+                                <p class="text-xs text-gray-600">التاريخ: ${data.assistanceDate.toDate().toLocaleDateString('en-US')}</p>
+                            </div>
+                        `;
+                    }).join('');
+                    reportContent.innerHTML = `
+                        <p class="font-bold text-lg mb-4">إجمالي قيمة المساعدات: <span class="text-green-600">${totalValue.toLocaleString()}</span></p>
+                        ${htmlContent}
+                    `;
+                }
+                document.getElementById('advanced-report-results').classList.remove('hidden');
+            } catch (error) {
+                console.error("Error fetching temporal report: ", error);
+                showToast("حدث خطأ في عرض التقرير الزمني.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function getAssistanceTypeReport() {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            const assistanceType = document.getElementById('assistance-type-report').value.trim();
+            if (!assistanceType) {
+                showToast("يرجى إدخال طبيعة المساعدة.");
+                return;
+            }
+
+            showLoading();
+            const reportTitle = document.getElementById('advanced-report-title');
+            const reportContent = document.getElementById('advanced-report-content');
+            document.getElementById('advanced-report-results').classList.add('hidden');
+
+            const recordsRef = getAssistanceRecordsCollectionRef();
+            const q = query(
+                recordsRef,
+                where("assistanceType", "==", assistanceType)
+            );
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                reportTitle.textContent = `المستفيدون من مساعدة: "${assistanceType}"`;
+                
+                if (querySnapshot.empty) {
+                    reportContent.innerHTML = `<p class="text-center text-gray-500">لا يوجد مستفيدون من هذا النوع من المساعدة.</p>`;
+                } else {
+                    const uniqueBeneficiaries = new Set();
+                    const htmlContent = querySnapshot.docs.map(doc => {
+                        const data = doc.data();
+                        uniqueBeneficiaries.add(data.idNumber);
+                        return `
+                            <div class="bg-gray-100 p-3 rounded-md border-r-4 border-orange-500">
+                                <p class="font-semibold">${data.fullName}</p>
+                                <p class="text-sm text-gray-600">رقم الهوية: ${data.idNumber}</p>
+                                <p class="text-xs text-gray-600">تاريخ الحصول على المساعدة: ${data.assistanceDate.toDate().toLocaleDateString('en-US')}</p>
+                            </div>
+                        `;
+                    }).join('');
+                    reportContent.innerHTML = `
+                        <p class="font-bold text-lg mb-4">عدد المستفيدين: <span class="text-green-600">${uniqueBeneficiaries.size}</span></p>
+                        ${htmlContent}
+                    `;
+                }
+                document.getElementById('advanced-report-results').classList.remove('hidden');
+            } catch (error) {
+                console.error("Error fetching assistance type report: ", error);
+                showToast("حدث خطأ في عرض التقرير.");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function downloadSearchReport() {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            if (searchResultsData.length === 0) {
+                showToast("لا توجد بيانات لتنزيلها.");
+                return;
+            }
+            downloadCSV(searchResultsData, "تقرير-البحث.csv");
+        }
+        
+        async function downloadAllData() {
+            if (!isAuthReady) {
+                showToast("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            showLoading();
+            try {
+                const recordsRef = getAssistanceRecordsCollectionRef();
+                const querySnapshot = await getDocs(recordsRef);
+                const allData = querySnapshot.docs.map(doc => doc.data());
+                
+                if (allData.length === 0) {
+                    showToast("لا توجد بيانات في قاعدة البيانات.");
+                } else {
+                    downloadCSV(allData, "كل-البيانات.csv");
+                }
+            } catch (error) {
+                console.error("Error downloading all data:", error);
+                showToast("حدث خطأ في تنزيل البيانات.");
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+</html>
